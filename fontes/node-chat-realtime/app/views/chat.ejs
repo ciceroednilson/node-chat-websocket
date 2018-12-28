@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+
+		<title>Cícero Ednilson - Chat</title>
+		
+		<!-- JQUERY -->
+		<script src="js/jquery-2.2.1.js"></script>
+		
+		<!-- bootstrap - link cdn -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	
+		<!-- estilo -->
+		<link href="css/style.css" rel="stylesheet">
+		
+		<script type="text/javascript">
+		
+			$(document).ready(function(){
+				$("#exibe_chat").click(function(){
+					$("#conversa").show();
+					$("#participantes").hide();
+					ocultaNavbar();
+				});
+				
+				$("#exibe_participantes").click(function(){
+					$("#participantes").show();
+					$("#conversa").hide();
+					ocultaNavbar();
+				});
+			});
+			
+			function ocultaNavbar(){
+				$("#btn_navbar_toggle").attr("class","navbar-toggle collapsed");
+				$("#navbar-collapse-1").attr("class","navbar-collapse collapse");
+				$("#btn_navbar_toggle").attr("aria-expanded","false");
+				$("#navbar-collapse-1").attr("aria-expanded","false");
+			}
+		</script>
+	</head>
+
+	<body>
+	
+	
+		<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapse-1" id="btn_navbar_toggle">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="#">Cícero Ednilson</a>
+				</div>
+				
+				
+				<div class="collapse navbar-collapse" id="navbar-collapse-1">
+					<ul class="nav navbar-nav">
+						<li>
+							<a href="#" id="exibe_chat">Chat</a>
+						</li>
+						<li>
+							<a href="#" id="exibe_participantes">Participantes</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+	
+		<div class="container">
+            <div class="row conversa" id="conversa">
+				<div class="col-md-1"></div>
+				<div class="col-md-10" id="dialogos">
+				
+				</div>
+				<div class="col-md-1"></div>
+                
+            </div>
+			
+			<div class="row participantes" id="participantes" style="display:none">
+				<div class="col-md-1"></div>
+				<div class="col-md-10" id="pessoas">
+					
+				</div>
+				<div class="col-md-1"></div>
+                
+            </div>
+        </div>
+		
+		<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+			<div class="container">
+				<div class="panel-body campo-mensagem">
+					
+					<div class="col-md-12">
+						<div class="input-group">
+							<input type="text" class="form-control" placeholder="Mensagem" id="mensagem">
+							<input type="hidden" value="<%=dados.nickname %>" id="nickname"/>
+							<input type="hidden" value="0" id="nickname_atualizados_nos_clientes"/>
+							<span class="input-group-btn">
+								<button class="btn btn-default" type="button" id="enviar_mensagem">></button>
+
+								<button class="btn btn-default" style=" margin-left: 25px;" type="button" id="sair_do_chat">Sair</button>
+							</span>
+						</div>
+					</div>
+					
+				</div>
+			</div>
+		</nav>		
+		
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+		
+		<script src="/socket.io/socket.io.js"></script>
+
+		<script>
+			
+
+			$(document).ready(function(){
+
+
+				//MOSTRA A MENSAGEM DE BOAS VINDAS PARA O USUÁRIO QUE ACABOU DE ENTRAR NO CHAT.
+				var usuario = '<%=dados.nickname%>';
+
+				html =  "<div class='dialogo'>";
+				html += "<h4>" + usuario + "</h4>";
+				html += "<h4> Sejá bem vindo ao nosso chat!</h4>";
+				html += "</div>";
+				
+				
+				$("#dialogos").append(html);
+				
+			});
+
+
+
+			//ENDEREÇO DE ONDE ESTÁ RODANDO NOSSO WEBSOCKET
+			var socket = io("http://localhost:3000");
+
+
+
+			$("#enviar_mensagem").click(function(){
+
+				//QUANDO CLICAR NO BOTÃO DE ENVIAR MENSAGEM ENVIAREMOS UMA MENSAGEM PARA O SOCKET DO SERVIDOR, QUE POR SUA VEZ ENVIA PARA
+				//OS OUTROS CLIENTES QUE ESTÃO NO CHAT
+				socket.emit("msgParaServidor", 
+				{nickname: $("#nickname").val(), mensagem: $("#mensagem").val(), nickname_atualizados_nos_clientes : $("#nickname_atualizados_nos_clientes").val()});
+
+
+				$("#mensagem").val("");
+
+				//PARA NÃO CARREGAR MAIS DE UMA VEZ A LISTA DE PARTICIPANTES DO CHAT
+				$("#nickname_atualizados_nos_clientes").val(1);
+
+			});
+
+			$("#sair_do_chat").click(function(){
+
+				//ENVIA UMA MENSAGEM PARA P SERVIDOR INFORMANDO QUE O USUÁRIO SAIU DO CHAT
+				socket.emit("msgParaServidor", 
+				{nickname: $("#nickname").val(), sairdoChat : true});
+
+			});
+			
+			
+			//RECEBE DO  SERVIDOR UMA MENSAGEM DE SAÍDA E REDIRECIONA PARA A PÁGINA DE INDEX
+			socket.on("sairDoChat",function(data){
+				
+				if(data.sairdoChat){
+					window.location ="/";
+				}
+			});
+
+
+			//RECEBE A MENSAGEM DO  SERVIDOR QUE POR SUA VEZ FOI ENVIADA POR UM OUTRO CLIENTE
+			socket.on("msgParaCliente",function(data){
+				
+				var html ="";
+
+				html =  "<div class='dialogo'>";
+				html += "<h4>" + data.nickname + "</h4>";
+				html += "<p>" + data.mensagem + "</p>";
+				html += "</div>";
+
+				$("#dialogos").append(html);
+
+				window.scrollTo(0,document.body.scrollHeight);
+
+			});
+
+			//CARREGA OS PARTICIPANTES
+			socket.on("participantesParaCliente",function(data){
+				
+				var html ="";
+
+				html =  "<spam class='participante'>";
+				html +=  "<img src='images/ico_usuario.png'  />";
+				html +=  data.nickname;
+				html += "</span>";
+
+				$("#pessoas").append(html);
+			});
+
+
+
+		</script>
+
+	</body>
+</html>
