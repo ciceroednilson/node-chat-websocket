@@ -12,7 +12,7 @@
 
 - NodeJS
 - Npm
-- OVisual Studio Code
+- Visual Studio Code
 
 ### Pacotes necessários para essa aplicação.
 
